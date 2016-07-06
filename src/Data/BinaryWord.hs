@@ -20,7 +20,7 @@ import Data.Int
 import Data.Word
 import Data.Bits (Bits(..))
 #if MIN_VERSION_base(4,7,0)
-import Data.Bits (FiniteBits)
+import Data.Bits (FiniteBits(..))
 #endif
 #if __GLASGOW_HASKELL__ >= 705
 import GHC.Prim (plusWord2#, timesWord2#)
@@ -109,6 +109,12 @@ instance BinaryWord Word8 where
           lo = fromIntegral p
           hi = fromIntegral (shiftR p 8)
   {-# INLINE unwrappedMul #-}
+#if MIN_VERSION_base(4,8,0)
+  leadingZeroes = countLeadingZeros
+  {-# INLINE leadingZeroes #-}
+  trailingZeroes = countTrailingZeros
+  {-# INLINE trailingZeroes #-}
+#else
   leadingZeroes w | w .&. 0xF0 == 0 = go4 4 w
                   | otherwise       = go4 0 (shiftR w 4)
     where go4 off w' | w' .&. 8 /= 0 = off
@@ -123,6 +129,7 @@ instance BinaryWord Word8 where
                      | w' .&. 4 /= 0 = off + 2
                      | w' .&. 8 /= 0 = off + 3
                      | otherwise     = off + 4
+#endif
   allZeroes = 0
   {-# INLINE allZeroes #-}
   allOnes = 0xFF
@@ -155,6 +162,12 @@ instance BinaryWord Word16 where
           lo = fromIntegral p
           hi = fromIntegral (shiftR p 16)
   {-# INLINE unwrappedMul #-}
+#if MIN_VERSION_base(4,8,0)
+  leadingZeroes = countLeadingZeros
+  {-# INLINE leadingZeroes #-}
+  trailingZeroes = countTrailingZeros
+  {-# INLINE trailingZeroes #-}
+#else
   leadingZeroes w | w .&. 0xFF00 == 0 = go8 8 w
                   | otherwise         = go8 0 (shiftR w 8)
     where
@@ -175,6 +188,7 @@ instance BinaryWord Word16 where
                  | w' .&. 4 /= 0    = off + 2
                  | w' .&. 8 /= 0    = off + 3
                  | otherwise        = off + 4
+#endif
   allZeroes = 0
   {-# INLINE allZeroes #-}
   allOnes = 0xFFFF
@@ -221,6 +235,12 @@ instance BinaryWord Word32 where
           hi = fromIntegral (shiftR p 32)
 #endif
   {-# INLINE unwrappedMul #-}
+#if MIN_VERSION_base(4,8,0)
+  leadingZeroes = countLeadingZeros
+  {-# INLINE leadingZeroes #-}
+  trailingZeroes = countTrailingZeros
+  {-# INLINE trailingZeroes #-}
+#else
   leadingZeroes w | w .&. 0xFFFF0000 == 0 = go16 16 w
                   | otherwise             = go16 0 (shiftR w 16)
     where
@@ -245,6 +265,7 @@ instance BinaryWord Word32 where
                   | w' .&. 4 /= 0      = off + 2
                   | w' .&. 8 /= 0      = off + 3
                   | otherwise          = off + 4
+#endif
   allZeroes = 0
   {-# INLINE allZeroes #-}
   allOnes = 0xFFFFFFFF
@@ -301,7 +322,13 @@ instance BinaryWord Word64 where
           (uHi1, uLo) = unwrappedAdd (fromIntegral p1) (fromIntegral p2)
           (uHi2, lo') = unwrappedAdd (fromIntegral (shiftR lo0 32)) uLo
 #endif
-#if WORD_SIZE_IN_BITS == 64
+#if MIN_VERSION_base(4,8,0)
+  leadingZeroes = countLeadingZeros
+  {-# INLINE leadingZeroes #-}
+  trailingZeroes = countTrailingZeros
+  {-# INLINE trailingZeroes #-}
+#else
+# if WORD_SIZE_IN_BITS == 64
   leadingZeroes w | w .&. 0xFFFFFFFF00000000 == 0 = go32 32 w
                   | otherwise                     = go32 0 (shiftR w 32)
     where
@@ -330,7 +357,7 @@ instance BinaryWord Word64 where
                   | w' .&. 4 /= 0          = off + 2
                   | w' .&. 8 /= 0          = off + 3
                   | otherwise              = off + 4
-#else
+# else
   leadingZeroes w | hiZeroes == 32 = 32 + leadingZeroes lo
                   | otherwise      = hiZeroes
     where lo = fromIntegral w ∷ Word32
@@ -341,6 +368,7 @@ instance BinaryWord Word64 where
     where lo = fromIntegral w ∷ Word32
           hi = fromIntegral (shiftR w 32) ∷ Word32
           loZeroes = trailingZeroes lo
+# endif
 #endif
   allZeroes = 0
   {-# INLINE allZeroes #-}
