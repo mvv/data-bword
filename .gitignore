@@ -1,6 +1,5 @@
-cabal-dev
-dist
 .*
 *~
 *.log
-*.sandbox.config
+/cabal.sandbox.config
+/dist*
