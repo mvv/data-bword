@@ -3,6 +3,7 @@
 #if __GLASGOW_HASKELL__ >= 705
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE BangPatterns #-}
 #endif
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -22,16 +23,11 @@ import Data.Bits (Bits(..))
 #if MIN_VERSION_base(4,7,0)
 import Data.Bits (FiniteBits(..))
 #endif
-#if __GLASGOW_HASKELL__ >= 904
-import GHC.Prim (plusWord2#, timesWord2#, word64ToWord#, wordToWord64#)
-# if WORD_SIZE_IN_BITS == 32
-import GHC.Word (Word32(..))
-# endif
-# if WORD_SIZE_IN_BITS == 64
-import GHC.Word (Word64(..))
-# endif
-#elif __GLASGOW_HASKELL__ >= 705
+#if __GLASGOW_HASKELL__ >= 705
 import GHC.Prim (plusWord2#, timesWord2#)
+# if __GLASGOW_HASKELL__ >= 904
+import GHC.Prim (word64ToWord#, wordToWord64#)
+# endif
 # if WORD_SIZE_IN_BITS == 32
 import GHC.Word (Word32(..))
 # endif
@@ -221,7 +217,7 @@ instance BinaryWord Word32 where
   {-# INLINE signedWord #-}
 #if __GLASGOW_HASKELL__ >= 705 && WORD_SIZE_IN_BITS == 32
   unwrappedAdd (W32# x) (W32# y) = hi `seq` lo `seq` (hi, lo)
-    where (# hi', lo' #) = plusWord2# x y
+    where !(# hi', lo' #) = plusWord2# x y
           lo = W32# lo'
           hi = W32# hi'
 #else
@@ -233,7 +229,7 @@ instance BinaryWord Word32 where
   {-# INLINE unwrappedAdd #-}
 #if __GLASGOW_HASKELL__ >= 705 && WORD_SIZE_IN_BITS == 32
   unwrappedMul (W32# x) (W32# y) = hi `seq` lo `seq` (hi, lo)
-    where (# hi', lo' #) = timesWord2# x y
+    where !(# hi', lo' #) = timesWord2# x y
           lo = W32# lo'
           hi = W32# hi'
 #else
@@ -296,17 +292,17 @@ instance BinaryWord Word64 where
   {-# INLINE unsignedWord #-}
   signedWord = fromIntegral
   {-# INLINE signedWord #-}
-#if __GLASGOW_HASKELL__ >= 904 && WORD_SIZE_IN_BITS == 64
+#if __GLASGOW_HASKELL__ >= 705 && WORD_SIZE_IN_BITS == 64
   unwrappedAdd (W64# x) (W64# y) = hi `seq` lo `seq` (hi, lo)
-    where (# hi', lo' #) = plusWord2# (word64ToWord# x) (word64ToWord# y)
+# if __GLASGOW_HASKELL__ >= 904
+    where !(# hi', lo' #) = plusWord2# (word64ToWord# x) (word64ToWord# y)
           lo = W64# (wordToWord64# lo')
           hi = W64# (wordToWord64# hi')
-  {-# INLINE unwrappedAdd #-}
-#elif __GLASGOW_HASKELL__ >= 705 && WORD_SIZE_IN_BITS == 64
-  unwrappedAdd (W64# x) (W64# y) = hi `seq` lo `seq` (hi, lo)
-    where (# hi', lo' #) = plusWord2# x y
+# else
+    where !(# hi', lo' #) = plusWord2# x y
           lo = W64# lo'
           hi = W64# hi'
+# endif
   {-# INLINE unwrappedAdd #-}
 #else
   unwrappedAdd x y = hi `seq` lo `seq` (hi, lo)
@@ -314,17 +310,17 @@ instance BinaryWord Word64 where
           hi = if lo < x then 1 else 0
   {-# INLINABLE unwrappedAdd #-}
 #endif
-#if __GLASGOW_HASKELL__ >= 904 && WORD_SIZE_IN_BITS == 64
+#if __GLASGOW_HASKELL__ >= 705 && WORD_SIZE_IN_BITS == 64
   unwrappedMul (W64# x) (W64# y) = hi `seq` lo `seq` (hi, lo)
-    where (# hi', lo' #) = timesWord2# (word64ToWord# x) (word64ToWord# y)
+# if __GLASGOW_HASKELL__ >= 904
+    where !(# hi', lo' #) = timesWord2# (word64ToWord# x) (word64ToWord# y)
           lo = W64# (wordToWord64# lo')
           hi = W64# (wordToWord64# hi')
-  {-# INLINE unwrappedMul #-}
-#elif __GLASGOW_HASKELL__ >= 705 && WORD_SIZE_IN_BITS == 64
-  unwrappedMul (W64# x) (W64# y) = hi `seq` lo `seq` (hi, lo)
-    where (# hi', lo' #) = timesWord2# x y
+# else
+    where !(# hi', lo' #) = timesWord2# x y
           lo = W64# lo'
           hi = W64# hi'
+# endif
   {-# INLINE unwrappedMul #-}
 #else
   unwrappedMul x y = hi `seq` lo `seq` (hi, lo)
